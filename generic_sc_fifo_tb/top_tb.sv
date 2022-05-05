@@ -58,7 +58,11 @@ initial
     @( posedge clk );
     rst <= 1'b0;
 
-    while( !full )
+    //******************************************************************************
+    // Test 1
+    //******************************************************************************
+
+    while( usedw < 2**5-1 )
       begin
         wr_en   <= 1'b1;
         ref_data = $urandom_range( 2**8-1, 0 );
@@ -95,6 +99,91 @@ initial
             $stop();
           end
       end
+
+    //******************************************************************************
+    // Test 2
+    //******************************************************************************
+
+    while( usedw < 2**3 )
+      begin
+        wr_en   <= 1'b1;
+        ref_data = $urandom_range( 2**8-1, 0 );
+        wr_q.push_back( ref_data );
+        wr_data <= ref_data;
+        @( posedge clk );
+        wr_en   <= 1'b0;
+      end
+    
+    while( usedw > 1 )
+      begin
+        rd_en   <= 1'b1;
+        @( posedge clk );
+        rd_q.push_back( rd_data );
+        rd_en   <= 1'b0;
+      end
+
+    if( wr_q.size() != rd_q.size() )
+      begin
+        $error("Ref queue size mismatch. Expected: %0d. Observed: %0d.", wr_q.size(), rd_q.size() );
+        $stop();
+      end
+
+    repeat( wr_q.size() )
+      begin 
+        bit [7:0] wr_data;
+        bit [7:0] rd_data;
+
+        wr_data = wr_q.pop_front();
+        rd_data = rd_q.pop_front();
+        if( wr_data != rd_data )
+          begin
+            $error("Data mismatch. Expected: %h. Observed: %h.", wr_data, rd_data );
+            $stop();
+          end
+      end
+
+    //******************************************************************************
+    // Test 3
+    //******************************************************************************
+
+    while( usedw < 2**5-1 )
+      begin
+        wr_en   <= 1'b1;
+        ref_data = $urandom_range( 2**8-1, 0 );
+        wr_q.push_back( ref_data );
+        wr_data <= ref_data;
+        @( posedge clk );
+        wr_en   <= 1'b0;
+      end
+    
+    while( usedw > 1 )//!empty )
+      begin
+        rd_en   <= 1'b1;
+        @( posedge clk );
+        rd_q.push_back( rd_data );
+        rd_en   <= 1'b0;
+      end
+
+    if( wr_q.size() != rd_q.size() )
+      begin
+        $error("Ref queue size mismatch. Expected: %0d. Observed: %0d.", wr_q.size(), rd_q.size() );
+        $stop();
+      end
+
+    repeat( wr_q.size() )
+      begin 
+        bit [7:0] wr_data;
+        bit [7:0] rd_data;
+
+        wr_data = wr_q.pop_front();
+        rd_data = rd_q.pop_front();
+        if( wr_data != rd_data )
+          begin
+            $error("Data mismatch. Expected: %h. Observed: %h.", wr_data, rd_data );
+            $stop();
+          end
+      end
+
 
     $display("Everything is OK");
     $stop();

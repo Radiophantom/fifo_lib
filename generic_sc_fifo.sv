@@ -29,8 +29,6 @@ logic [ADDR_W-1:0] rd_addr;
 
 logic [DATA_W-1:0] rd_data;
 
-logic             prefetch_data;
-
 logic             empty;
 logic             full;
 logic [ADDR_W:0]  usedw;
@@ -40,16 +38,29 @@ logic             rd_en;
 // WR logic
 //******************************************************************************
 
-always_ff @( posedge clk_i )
-  if( wr_en_i )
-    mem[wr_addr] <= data_i;
-
 always_ff @( posedge clk_i, posedge rst_i )
   if( rst_i )
     wr_addr <= '0;
   else
     if( wr_en_i )
       wr_addr <= wr_addr + 1'b1;
+
+always_ff @( posedge clk_i )
+  if( wr_en_i )
+    mem[wr_addr] <= data_i;
+
+//******************************************************************************
+// RD logic
+//******************************************************************************
+
+always_ff @( posedge clk_i, posedge rst_i )
+  if( rst_i )
+    rd_addr <= '0;
+  else
+    if( rd_en_i )
+      rd_addr <= rd_addr + 1'b1;
+
+assign data_o = mem[rd_addr];
 
 //******************************************************************************
 // Status logic
@@ -60,10 +71,10 @@ always_ff @( posedge clk_i, posedge rst_i )
   if( rst_i )
     empty <= 1'b1;
   else
-    if( prefetch_data )
+    if( wr_en_i )
       empty <= 1'b0;
     else
-      if( rd_en_i && usedw == 1 && !wr_en_i )
+      if( rd_en_i && usedw == 1 )
         empty <= 1'b1;
 
 // FIFO is full
@@ -74,40 +85,17 @@ always_ff @( posedge clk_i, posedge rst_i )
     if( rd_en_i )
       full <= 1'b0;
     else
-      if( wr_en_i && usedw == 2**ADDR_W-2 )
+      if( wr_en_i && usedw == 2**ADDR_W-1 )
         full <= 1'b1;
 
 always_ff @( posedge clk_i, posedge rst_i )
   if( rst_i )
     usedw <= '0;
   else
-    usedw <= usedw + ( wr_en_i == 1'b1 ) - ( rd_en_i == 1'b1 );
-    //case( { wr_en_i, rd_en } )
-    //  2'b10: wr_usedw <= wr_usedw + 1'b1;
-    //  2'b01: wr_usedw <= wr_usedw - 1'b1;
-    //endcase
-
-//******************************************************************************
-// RD logic
-//******************************************************************************
-
-always_ff @( posedge clk_i )
-  prefetch_data <= wr_en_i && empty && !prefetch_data;
-
-assign rd_en = prefetch_data || rd_en_i;
-
-always_ff @( posedge clk_i, posedge rst_i )
-  if( rst_i )
-    rd_addr <= '0;
-  else
-    if( rd_en )
-      rd_addr <= rd_addr + 1'b1;
-
-always_ff @( posedge clk_i )
-  if( rd_en )
-    rd_data <= mem[rd_addr];
-
-assign data_o = rd_data;
+    case( { wr_en_i, rd_en_i } )
+      2'b10: usedw <= usedw + 1'b1;
+      2'b01: usedw <= usedw - 1'b1;
+    endcase
 
 //******************************************************************************
 // Output assignments
