@@ -27,6 +27,8 @@ logic [DATA_W-1:0] mem [2**ADDR_W-1:0];
 logic [ADDR_W-1:0] wr_addr;
 logic [ADDR_W-1:0] rd_addr;
 
+logic [DATA_W-1:0] rd_data;
+
 logic             prefetch_data;
 
 logic             empty;
@@ -40,7 +42,7 @@ logic             rd_en;
 
 always_ff @( posedge clk_i )
   if( wr_en_i )
-    mem[wr_addr] <= wr_data_i;
+    mem[wr_addr] <= data_i;
 
 always_ff @( posedge clk_i, posedge rst_i )
   if( rst_i )
@@ -90,9 +92,9 @@ always_ff @( posedge clk_i, posedge rst_i )
 //******************************************************************************
 
 always_ff @( posedge clk_i )
-  prefetch_data <= wr_en_i && empty;
+  prefetch_data <= wr_en_i && empty && !prefetch_data;
 
-assign rd_en = prefetch_rd_data || rd_en_i;
+assign rd_en = prefetch_data || rd_en_i;
 
 always_ff @( posedge clk_i, posedge rst_i )
   if( rst_i )
@@ -107,4 +109,34 @@ always_ff @( posedge clk_i )
 
 assign data_o = rd_data;
 
+//******************************************************************************
+// Output assignments
+//******************************************************************************
+
+assign full_o  = full;
+assign empty_o = empty;
+assign usedw_o = usedw;
+
 endmodule
+
+/*
+
+generic_sc_fifo #(
+  .ADDR_W  ( ),
+  .DATA_W  ( )
+) generic_sc_fifo (
+  .rst_i   ( ),
+  .clk_i   ( ),
+
+  .wr_en_i ( ),
+  .data_i  ( ),
+
+  .rd_en_i ( ),
+  .data_o  ( ),
+
+  .usedw_o ( ),
+  .empty_o ( ),
+  .full_o  ( )
+);
+
+*/
