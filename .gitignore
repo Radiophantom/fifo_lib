@@ -1,0 +1,6 @@
+tags
+*.swp
+*.bak
+work/
+transcript
+vsim.wlf
