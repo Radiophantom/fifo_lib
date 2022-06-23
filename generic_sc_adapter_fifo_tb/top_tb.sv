@@ -93,6 +93,34 @@ initial
         wr_en   <= 1'b0;
       end
     
+    while( rd_usedw > 2 )
+      begin
+        rd_en   <= 1'b1;
+        @( posedge clk );
+        rd_data_reg = rd_data;
+        repeat( RD_DATA_W/8 )
+          begin
+            rd_q.push_back( rd_data_reg[7:0] );
+            rd_data_reg = rd_data_reg >> 8;
+          end
+        rd_en   <= 1'b0;
+      end
+
+    while( wr_usedw < 2**WR_ADDR_W-1 )
+      begin
+        wr_en   <= 1'b1;
+        repeat( WR_DATA_W/8 )
+          begin
+            bit [7:0] ref_data;
+            ref_data = $urandom_range( 2**8-1, 0 );
+            wr_q.push_back( ref_data );
+            wr_data_reg = { ref_data, wr_data_reg[WR_DATA_W-1:8] };
+          end
+        wr_data <= wr_data_reg;
+        @( posedge clk );
+        wr_en   <= 1'b0;
+      end
+
     while( rd_usedw > 1 )
       begin
         rd_en   <= 1'b1;
